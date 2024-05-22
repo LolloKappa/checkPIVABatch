@@ -7,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace checkPIVABatch
 {
@@ -52,20 +51,154 @@ namespace checkPIVABatch
                         using (var scope = host.Services.CreateScope())
                         {
                             var repositoryService = scope.ServiceProvider.GetRequiredService<IRepositoryService>();
+                            var result = repositoryService.GetAllTaxInterrogationHistory();
+                            if (result.Success == false)
+                            {
+                                Console.WriteLine(result.Message);
+                                break;
+                            }
 
+                            if (result.Data.Count() == 0)
+                            {
+                                Console.WriteLine("There are no stored tax interrogation");
+                                break;
+                            }
+
+                            Console.WriteLine("Richieste salvate:");
+                            Console.WriteLine("Id | CountryCode | VatNumber | RequestDate | Valid | RequestIdentifier | Name | Address");
+                            foreach (var item in result.Data)
+                            {
+                                Console.WriteLine(item.ToString());
+                            }
                         }
                         break;
 
                     case "2":
+                        Console.Write("Inserisci il codice nazione (ISO2) di domicilio della P.IVA:");
+                        var countryCode = Console.ReadLine();
+                        Console.Write("Inserisci il numero di partita IVA:");
+                        var vatNumber = Console.ReadLine();
+
+                        // Check if VAT number is already stored
+                        Result<TaxInterrogationHistory> checkResult;
+                        using (var scope = host.Services.CreateScope())
+                        {
+                            var repositoryService = scope.ServiceProvider.GetRequiredService<IRepositoryService>();
+                            checkResult = repositoryService.GetTaxInterrogationHistoryByVatNumber(countryCode, vatNumber);
+                        }
+
+                        bool isVatNumberAlreadyStored = false;
+                        TaxInterrogationHistory vatNumberAlreadyStoredEntity = new TaxInterrogationHistory();
+                        if (checkResult.Success == true)
+                        {
+                            Console.WriteLine($"La partita iva con codice nazione {countryCode} e partitaIVA {vatNumber} e' gia' presente in database");
+                            Console.Write($"Premere 1 per visualizzarla o 2 per eseguire comunque la ricerca: ");
+                            var choice = Console.ReadLine();
+
+                            if (choice == "1")
+                            {
+                                Console.WriteLine("Id | CountryCode | VatNumber | RequestDate | Valid | RequestIdentifier | Name | Address");
+                                Console.WriteLine(checkResult.Data.ToString());
+                                break;
+                            }
+
+                            isVatNumberAlreadyStored = true;
+                            vatNumberAlreadyStoredEntity = checkResult.Data;
+                        }
+
+                        Result<CheckVATNumberResponseDTO> vatRequestResult;
                         using (var scope = host.Services.CreateScope())
                         {
                             var vatService = scope.ServiceProvider.GetRequiredService<IVatService>();
-                            await vatService.CheckVATNumber(new CheckVATNumberPostDTO()
+                            vatRequestResult = await vatService.CheckVATNumber(new CheckVATNumberPostDTO()
                             {
-                                CountryCode = "",
-                                VatNumber = "IT00808220131",
+                                CountryCode = countryCode,
+                                VatNumber = vatNumber,
                             });
                         }
+
+                        if (vatRequestResult.Success == false)
+                        {
+                            Console.WriteLine(vatRequestResult.Message);
+                            break;
+                        }
+
+                        Console.WriteLine("Richiesta effettuata con successo");
+
+                        if (vatRequestResult.Data.Valid == false)
+                        {
+                            Console.WriteLine("P. IVA non valida");
+                            break;
+                        }
+
+                        Console.WriteLine("CountryCode | VatNumber | RequestDate | Valid | RequestIdentifier | Name | Address");
+                        Console.WriteLine(vatRequestResult.Data.ToString());
+
+                        if (isVatNumberAlreadyStored)
+                        {
+                            Console.Write("Desideri sovreascrivere la ricerca in memoria con la seguente ricerca (SI/NO)? ");
+                            var overwriteRequest = Console.ReadLine();
+
+                            if (overwriteRequest.Equals("SI", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                Result<TaxInterrogationHistory> updateResult;
+                                using (var scope = host.Services.CreateScope())
+                                {
+                                    var vatService = scope.ServiceProvider.GetRequiredService<IRepositoryService>();
+                                    updateResult = vatService.UpdateTaxInterrogationHistory(vatNumberAlreadyStoredEntity.Id, new TaxInterrogationHistory()
+                                    {
+                                        Address = vatRequestResult.Data.Address,
+                                        CountryCode = vatRequestResult.Data.CountryCode,
+                                        Name = vatRequestResult.Data.Name,
+                                        RequestDate = vatRequestResult.Data.RequestDate,
+                                        RequestIdentifier = vatRequestResult.Data.RequestIdentifier,
+                                        Valid = vatRequestResult.Data.Valid,
+                                        VatNumber = vatRequestResult.Data.VatNumber,
+                                    });
+                                }
+
+                                if (updateResult.Success == false)
+                                {
+                                    Console.WriteLine(updateResult.Message);
+                                    break;
+                                }
+
+                                Console.WriteLine($"Richiesta sovrascritta con successo");
+                            }
+                            break;
+                        }
+
+                        Console.WriteLine();
+                        Console.Write("Desideri salvare la seguente ricerca (SI/NO)? ");
+
+                        var saveRequest = Console.ReadLine();
+                        if (saveRequest.Equals("SI", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            Result<TaxInterrogationHistory> addResult;
+                            using (var scope = host.Services.CreateScope())
+                            {
+                                var vatService = scope.ServiceProvider.GetRequiredService<IRepositoryService>();
+                                addResult = vatService.AddTaxInterrogationHistory(new TaxInterrogationHistory()
+                                {
+                                    Address = vatRequestResult.Data.Address,
+                                    CountryCode = vatRequestResult.Data.CountryCode,
+                                    Name = vatRequestResult.Data.Name,
+                                    RequestDate = vatRequestResult.Data.RequestDate,
+                                    RequestIdentifier = vatRequestResult.Data.RequestIdentifier,
+                                    Valid = vatRequestResult.Data.Valid,
+                                    VatNumber = vatRequestResult.Data.VatNumber
+                                });
+                            }
+
+                            if (addResult.Success == false)
+                            {
+                                Console.WriteLine(addResult.Message);
+                                break;
+                            }
+
+                            Console.WriteLine($"Richiesta salvata con successo con Id: {addResult.Data.Id}");
+                        }
+
                         break;
 
                     case "3":

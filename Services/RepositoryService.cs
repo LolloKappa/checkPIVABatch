@@ -77,6 +77,42 @@ namespace checkPIVABatch.Services
             return result;
         }
 
+        public Result<TaxInterrogationHistory> GetTaxInterrogationHistoryByVatNumber(string CountryCode, string VatNumber)
+        {
+            _logger.LogInformation("Get TaxInterrogationHistory by CountryCode and VatNumber");
+            var result = new Result<TaxInterrogationHistory>()
+            {
+                Data = null,
+                Success = false
+            };
+
+            try
+            {
+                var taxInterrogationHistory = _checkIVABatchDBContext.taxInterrogationsHistories.FirstOrDefault(x => x.CountryCode == CountryCode && x.VatNumber == VatNumber);
+                if (taxInterrogationHistory is null)
+                {
+                    var errorMessage = string.Concat("TaxInterrogationHistory with CountryCode ", CountryCode, " and Tax Number ", VatNumber, " not found");
+                    _logger.LogWarning(errorMessage);
+                    result.Success = false;
+                    result.Message = errorMessage;
+
+                    return result;
+                }
+
+                result.Data = taxInterrogationHistory;
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = string.Concat("Error during DB query: ", ex.Message);
+                _logger.LogError(errorMessage);
+                result.Message = errorMessage;
+                result.Success = false;
+            }
+
+            return result;
+        }
+
         public Result<TaxInterrogationHistory> AddTaxInterrogationHistory(TaxInterrogationHistory taxInterrogationHistoryToAdd)
         {
             _logger.LogInformation("Add TaxInterrogationHistory");
@@ -125,7 +161,16 @@ namespace checkPIVABatch.Services
                 if (taxInterrogationHistoryResult.Success == false)
                     return taxInterrogationHistoryResult;
 
-                var updatedTaxInterrogationHistory = _checkIVABatchDBContext.taxInterrogationsHistories.Update(taxInterrogationHistoryToUpdate);
+                var targetTaxInterrogationHistory = taxInterrogationHistoryResult.Data;
+                targetTaxInterrogationHistory.CountryCode = taxInterrogationHistoryToUpdate.CountryCode;
+                targetTaxInterrogationHistory.VatNumber = taxInterrogationHistoryToUpdate.VatNumber;
+                targetTaxInterrogationHistory.RequestDate = taxInterrogationHistoryToUpdate.RequestDate;
+                targetTaxInterrogationHistory.Valid = taxInterrogationHistoryToUpdate.Valid;
+                targetTaxInterrogationHistory.RequestIdentifier = taxInterrogationHistoryToUpdate.RequestIdentifier;
+                targetTaxInterrogationHistory.Name = taxInterrogationHistoryToUpdate.Name;
+                targetTaxInterrogationHistory.Address = taxInterrogationHistoryToUpdate.Address;
+
+                var updatedTaxInterrogationHistory = _checkIVABatchDBContext.taxInterrogationsHistories.Update(targetTaxInterrogationHistory);
                 _checkIVABatchDBContext.SaveChanges();
                 result.Data = updatedTaxInterrogationHistory.Entity;
                 result.Success = true;

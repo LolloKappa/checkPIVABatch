@@ -43,7 +43,7 @@ namespace checkPIVABatch.Services
                 {
                     var responseContent = response.Content.ReadAsStringAsync().Result;
                     var checkVATNumberResponseDTO = JsonSerializer.Deserialize<CheckVATNumberResponseErrorDTO>(responseContent);
-                    var errorMessage = string.Concat("Error during VAT number check, bad request: ", response.ReasonPhrase);
+                    var errorMessage = string.Concat("Error during VAT number check, bad request: ", checkVATNumberResponseDTO.GetErrorMessage());
                     _logger.LogError(errorMessage);
                     result.Message = errorMessage;
                     result.Success = false;
@@ -53,7 +53,7 @@ namespace checkPIVABatch.Services
                 {
                     var responseContent = response.Content.ReadAsStringAsync().Result;
                     var checkVATNumberResponseDTO = JsonSerializer.Deserialize<CheckVATNumberResponseErrorDTO>(responseContent);
-                    var errorMessage = string.Concat("Error during VAT number check, bad request: ", response.ReasonPhrase);
+                    var errorMessage = string.Concat("Error during VAT number check, bad request: ", checkVATNumberResponseDTO.GetErrorMessage());
                     _logger.LogError(errorMessage);
                     result.Message = errorMessage;
                     result.Success = false;

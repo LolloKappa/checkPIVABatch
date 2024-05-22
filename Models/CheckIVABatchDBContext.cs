@@ -41,6 +41,9 @@ namespace checkPIVABatch.Models
                 entity.Property(e => e.Address)
                     .HasColumnName("address")
                     .IsRequired();
+
+                //unique constraint to the countryCode and vatNumber column column 
+                entity.HasIndex(e => new { e.CountryCode , e.VatNumber}).IsUnique();
             });
         }
     }

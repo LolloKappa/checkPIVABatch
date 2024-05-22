@@ -7,6 +7,7 @@ namespace checkPIVABatch.Interfaces
     {
         public Result<IEnumerable<TaxInterrogationHistory>> GetAllTaxInterrogationHistory();
         public Result<TaxInterrogationHistory> GetTaxInterrogationHistoryById(int id);
+        public Result<TaxInterrogationHistory> GetTaxInterrogationHistoryByVatNumber(string countryCode, string vatNumber);
         public Result<TaxInterrogationHistory> AddTaxInterrogationHistory(TaxInterrogationHistory taxInterrogationHistory);
         public Result<TaxInterrogationHistory> UpdateTaxInterrogationHistory(int id,TaxInterrogationHistory taxInterrogationHistory);
     }

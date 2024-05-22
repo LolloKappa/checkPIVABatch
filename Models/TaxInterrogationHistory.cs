@@ -10,5 +10,10 @@
         public string RequestIdentifier { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }
+
+        override public string ToString()
+        {
+            return $"{Id} | {CountryCode} | {VatNumber} | {RequestDate} | {Valid} | {RequestIdentifier} | {Name} | {Address}";
+        }
     }
 }

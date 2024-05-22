@@ -51,6 +51,11 @@ namespace checkPIVABatch.DTOs
         public string TraderCityMatch { get; set; }
         [JsonPropertyName("traderCompanyTypeMatch")]
         public string TraderCompanyTypeMatch { get; set; }
+
+        public string ToString()
+        {
+            return $" {CountryCode} | {VatNumber} | {RequestDate} | {Valid} | {RequestIdentifier} | {Name} | {Address}";
+        }
     }
 
     internal class CheckVATNumberResponseErrorDTO
@@ -59,6 +64,11 @@ namespace checkPIVABatch.DTOs
         public bool ActionSucceed { get; set; }
         [JsonPropertyName("errorWrappers")]
         public List<ErrorWrapperDTO> ErrorWrappers { get; set; }
+
+        public string GetErrorMessage()
+        {
+            return string.Join(" | ", ErrorWrappers.Select(x => x.Message));
+        }
     }
 
     public class ErrorWrapperDTO
