@@ -1,4 +1,5 @@
-﻿using checkPIVABatch.Interfaces;
+﻿using checkPIVABatch.DTOs;
+using checkPIVABatch.Interfaces;
 using checkPIVABatch.Models;
 using checkPIVABatch.Services;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace checkPIVABatch
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             // Application coniguration
             HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
@@ -23,6 +24,7 @@ namespace checkPIVABatch
             // Add services to the container
             hostBuilder.Services.AddScoped<IRepositoryService, RepositoryService>();
             hostBuilder.Services.AddScoped<IVatService, VatService>();
+            hostBuilder.Services.AddHttpClient();
 
             // Add EF server configuration and add DB context to Services
             var serverVersion = new MySqlServerVersion(hostBuilder.Configuration.GetSection("ConnectionStrings:ServerVersion").Value);
@@ -58,7 +60,11 @@ namespace checkPIVABatch
                         using (var scope = host.Services.CreateScope())
                         {
                             var vatService = scope.ServiceProvider.GetRequiredService<IVatService>();
-
+                            await vatService.CheckVATNumber(new CheckVATNumberPostDTO()
+                            {
+                                CountryCode = "",
+                                VatNumber = "IT00808220131",
+                            });
                         }
                         break;
 
